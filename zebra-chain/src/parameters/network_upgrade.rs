@@ -48,6 +48,11 @@ pub enum NetworkUpgrade {
     /// Note: Network Upgrade 5 includes the Orchard Shielded Protocol, and
     /// other changes. The Nu5 code name has not been chosen yet.
     Nu5,
+    /// The Zcash protocol after the Nu6 upgrade.
+    ///
+    /// Note: Network Upgrade 6 includes the Zcash Sustainability Fund and
+    /// other changes.
+    Nu6,
 }
 
 impl fmt::Display for NetworkUpgrade {
@@ -344,7 +349,7 @@ impl NetworkUpgrade {
     pub fn target_spacing(&self) -> Duration {
         let spacing_seconds = match self {
             Genesis | BeforeOverwinter | Overwinter | Sapling => PRE_BLOSSOM_POW_TARGET_SPACING,
-            Blossom | Heartwood | Canopy | Nu5 => POST_BLOSSOM_POW_TARGET_SPACING.into(),
+            Blossom | Heartwood | Canopy | Nu5 | Nu6 => POST_BLOSSOM_POW_TARGET_SPACING.into(),
         };
 
         Duration::seconds(spacing_seconds)

@@ -345,6 +345,7 @@ fn sanitize_transaction_version(
             Overwinter => 3,
             Sapling | Blossom | Heartwood | Canopy => 4,
             Nu5 => 5,
+            Nu6 => 6,
         }
     };
 

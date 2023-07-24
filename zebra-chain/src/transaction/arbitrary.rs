@@ -767,6 +767,7 @@ impl Arbitrary for Transaction {
                 Self::v5_strategy(ledger_state)
             ]
             .boxed(),
+            NetworkUpgrade::Nu6 => todo!("Nu6 transaction arbitrary"),
         }
     }
 
@@ -855,7 +856,7 @@ pub fn transaction_to_fake_v5(
                 .and_then(sapling_shielded_v4_to_fake_v5),
             orchard_shielded_data: None,
         },
-        v5 @ V5 { .. } => v5.clone(),
+        V5 { .. } | V6 { .. } => trans.clone(),
     }
 }
 

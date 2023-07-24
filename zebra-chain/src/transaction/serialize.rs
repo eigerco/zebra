@@ -633,45 +633,88 @@ impl ZcashSerialize for Transaction {
                 sapling_shielded_data,
                 orchard_shielded_data,
             } => {
-                // Transaction V5 spec:
-                // https://zips.z.cash/protocol/protocol.pdf#txnencoding
+                serialize_v5_transaction(
+                    writer,
+                    network_upgrade,
+                    lock_time,
+                    expiry_height,
+                    inputs,
+                    outputs,
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                )?;
+            }
 
-                // Denoted as `nVersionGroupId` in the spec.
-                writer.write_u32::<LittleEndian>(TX_V5_VERSION_GROUP_ID)?;
-
-                // Denoted as `nConsensusBranchId` in the spec.
-                writer.write_u32::<LittleEndian>(u32::from(
-                    network_upgrade
-                        .branch_id()
-                        .expect("valid transactions must have a network upgrade with a branch id"),
-                ))?;
-
-                // Denoted as `lock_time` in the spec.
-                lock_time.zcash_serialize(&mut writer)?;
-
-                // Denoted as `nExpiryHeight` in the spec.
-                writer.write_u32::<LittleEndian>(expiry_height.0)?;
-
-                // Denoted as `tx_in_count` and `tx_in` in the spec.
-                inputs.zcash_serialize(&mut writer)?;
-
-                // Denoted as `tx_out_count` and `tx_out` in the spec.
-                outputs.zcash_serialize(&mut writer)?;
-
-                // A bundle of fields denoted in the spec as `nSpendsSapling`, `vSpendsSapling`,
-                // `nOutputsSapling`,`vOutputsSapling`, `valueBalanceSapling`, `anchorSapling`,
-                // `vSpendProofsSapling`, `vSpendAuthSigsSapling`, `vOutputProofsSapling` and
-                // `bindingSigSapling`.
-                sapling_shielded_data.zcash_serialize(&mut writer)?;
-
-                // A bundle of fields denoted in the spec as `nActionsOrchard`, `vActionsOrchard`,
-                // `flagsOrchard`,`valueBalanceOrchard`, `anchorOrchard`, `sizeProofsOrchard`,
-                // `proofsOrchard`, `vSpendAuthSigsOrchard`, and `bindingSigOrchard`.
-                orchard_shielded_data.zcash_serialize(&mut writer)?;
+            Transaction::V6 {
+                network_upgrade,
+                lock_time,
+                expiry_height,
+                inputs,
+                outputs,
+                sapling_shielded_data,
+                orchard_shielded_data,
+            } => {
+                serialize_v6_transaction(
+                    writer,
+                    network_upgrade,
+                    lock_time,
+                    expiry_height,
+                    inputs,
+                    outputs,
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                )?;
             }
         }
         Ok(())
     }
+}
+
+fn serialize_v5_transaction<W: io::Write>(
+    mut writer: W,
+    network_upgrade: &NetworkUpgrade,
+    lock_time: &LockTime,
+    expiry_height: &block::Height,
+    inputs: &Vec<transparent::Input>,
+    outputs: &Vec<transparent::Output>,
+    sapling_shielded_data: &Option<sapling::ShieldedData<SharedAnchor>>,
+    orchard_shielded_data: &Option<orchard::ShieldedData>,
+) -> Result<(), io::Error> {
+    writer.write_u32::<LittleEndian>(TX_V5_VERSION_GROUP_ID)?;
+    writer.write_u32::<LittleEndian>(u32::from(
+        network_upgrade
+            .branch_id()
+            .expect("valid transactions must have a network upgrade with a branch id"),
+    ))?;
+    lock_time.zcash_serialize(&mut writer)?;
+    writer.write_u32::<LittleEndian>(expiry_height.0)?;
+    inputs.zcash_serialize(&mut writer)?;
+    outputs.zcash_serialize(&mut writer)?;
+    sapling_shielded_data.zcash_serialize(&mut writer)?;
+    orchard_shielded_data.zcash_serialize(&mut writer)?;
+    Ok(())
+}
+
+fn serialize_v6_transaction<W: io::Write>(
+    writer: W,
+    network_upgrade: &NetworkUpgrade,
+    lock_time: &LockTime,
+    expiry_height: &block::Height,
+    inputs: &Vec<transparent::Input>,
+    outputs: &Vec<transparent::Output>,
+    sapling_shielded_data: &Option<sapling::ShieldedData<SharedAnchor>>,
+    orchard_shielded_data: &Option<orchard::ShieldedData>,
+) -> Result<(), io::Error> {
+    serialize_v5_transaction(
+        writer,
+        network_upgrade,
+        lock_time,
+        expiry_height,
+        inputs,
+        outputs,
+        sapling_shielded_data,
+        orchard_shielded_data,
+    )
 }
 
 impl ZcashDeserialize for Transaction {
