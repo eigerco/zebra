@@ -49,6 +49,10 @@ pub enum NetworkUpgrade {
     /// IDs, and other changes. There is no special code name for Nu5.
     #[serde(rename = "NU5")]
     Nu5,
+    ///
+    /// Note: Network Upgrade 6 is currently in development. It will most likely contain Zcash Shielded Assets, Zcash Sustainability Fund and other changes.
+    #[serde(rename = "NU6")]
+    Nu6,
 }
 
 impl fmt::Display for NetworkUpgrade {
@@ -77,6 +81,7 @@ pub(super) const MAINNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] 
     (block::Height(903_000), Heartwood),
     (block::Height(1_046_400), Canopy),
     (block::Height(1_687_104), Nu5),
+    (block::Height(2_726_400), Nu6),
 ];
 
 /// Fake mainnet network upgrade activation heights, used in tests.
@@ -90,6 +95,7 @@ const FAKE_MAINNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] = &[
     (block::Height(25), Heartwood),
     (block::Height(30), Canopy),
     (block::Height(35), Nu5),
+    (block::Height(40), Nu6),
 ];
 
 /// Testnet network upgrade activation heights.
@@ -111,6 +117,7 @@ pub(super) const TESTNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] 
     (block::Height(903_800), Heartwood),
     (block::Height(1_028_500), Canopy),
     (block::Height(1_842_420), Nu5),
+    (block::Height(1_842_420), Nu6),
 ];
 
 /// Fake testnet network upgrade activation heights, used in tests.
@@ -124,6 +131,7 @@ const FAKE_TESTNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] = &[
     (block::Height(25), Heartwood),
     (block::Height(30), Canopy),
     (block::Height(35), Nu5),
+    (block::Height(40), Nu6),
 ];
 
 /// The Consensus Branch Id, used to bind transactions and blocks to a
@@ -199,6 +207,7 @@ pub(crate) const CONSENSUS_BRANCH_IDS: &[(NetworkUpgrade, ConsensusBranchId)] = 
     (Heartwood, ConsensusBranchId(0xf5b9230b)),
     (Canopy, ConsensusBranchId(0xe9ff75a6)),
     (Nu5, ConsensusBranchId(0xc2d6d0b4)),
+    (Nu6, ConsensusBranchId(0xc8e71055)),
 ];
 
 /// The target block spacing before Blossom.
@@ -345,7 +354,7 @@ impl NetworkUpgrade {
     pub fn target_spacing(&self) -> Duration {
         let spacing_seconds = match self {
             Genesis | BeforeOverwinter | Overwinter | Sapling => PRE_BLOSSOM_POW_TARGET_SPACING,
-            Blossom | Heartwood | Canopy | Nu5 => POST_BLOSSOM_POW_TARGET_SPACING.into(),
+            Blossom | Heartwood | Canopy | Nu5 | Nu6 => POST_BLOSSOM_POW_TARGET_SPACING.into(),
         };
 
         Duration::seconds(spacing_seconds)

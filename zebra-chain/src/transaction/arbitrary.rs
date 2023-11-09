@@ -786,7 +786,7 @@ impl Arbitrary for Transaction {
             NetworkUpgrade::Blossom | NetworkUpgrade::Heartwood | NetworkUpgrade::Canopy => {
                 Self::v4_strategy(ledger_state)
             }
-            NetworkUpgrade::Nu5 => prop_oneof![
+            NetworkUpgrade::Nu5 | NetworkUpgrade::Nu6 => prop_oneof![
                 Self::v4_strategy(ledger_state),
                 Self::v5_strategy(ledger_state)
             ]
