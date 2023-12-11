@@ -51,8 +51,9 @@ tower = "0.4.13"
 tracing = "0.1.39"
 futures = "0.3.30"
 
-zcash_client_backend = "0.10.0-rc.1"
-zcash_primitives = "0.13.0-rc.1"
+zcash_client_backend = { path = "../../librustzcash/zcash_client_backend" }
+zcash_primitives = { path = "../../librustzcash/zcash_primitives", features = ["unstable-nu6"] }
+zcash_note_encryption = "0.4.0"
 
 zebra-chain = { path = "../zebra-chain", version = "1.0.0-beta.34" }
 zebra-state = { path = "../zebra-state", version = "1.0.0-beta.34", features = ["shielded-scan"] }
