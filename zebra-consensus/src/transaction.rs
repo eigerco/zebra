@@ -414,6 +414,8 @@ where
                     sapling_shielded_data,
                     orchard_shielded_data,
                 )?,
+                #[cfg(feature = "tx-v6")]
+                Transaction::V6 { .. } => todo!()
             };
 
             if let Some(unmined_tx) = req.mempool_transaction() {

@@ -21,6 +21,8 @@ required-features = ["proptest-impl"]
 
 [features]
 
+tx-v6 = ["zcash_primitives/unstable-nu6"]
+
 # Production features that activate extra dependencies, or extra features in dependencies
 
 # Test features
@@ -52,7 +54,7 @@ tracing = "0.1.39"
 futures = "0.3.30"
 
 zcash_client_backend = { path = "../../librustzcash/zcash_client_backend" }
-zcash_primitives = { path = "../../librustzcash/zcash_primitives", features = ["unstable-nu6"] }
+zcash_primitives = { path = "../../librustzcash/zcash_primitives" }
 zcash_note_encryption = "0.4.0"
 
 zebra-chain = { path = "../zebra-chain", version = "1.0.0-beta.34" }

@@ -15,7 +15,9 @@ keywords = ["zebra", "zcash"]
 categories = ["asynchronous", "cryptography::cryptocurrencies", "encoding"]
 
 [features]
-default = []
+default = ["tx-v6"]
+
+tx-v6 = ["zcash_primitives/unstable-nu6"]
 
 # Production features that activate extra functionality
 
@@ -98,7 +100,7 @@ orchard = "0.6.0"
 zcash_encoding = "0.2.0"
 zcash_history = "0.3.0"
 zcash_note_encryption = "0.4.0"
-zcash_primitives = { path = "../../librustzcash/zcash_primitives", features = ["unstable-nu6"] }
+zcash_primitives = { path = "../../librustzcash/zcash_primitives" }
 
 # Time
 chrono = { version = "0.4.33", default-features = false, features = ["clock", "std", "serde"] }

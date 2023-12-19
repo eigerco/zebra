@@ -1520,6 +1520,8 @@ impl Chain {
                 V1 { .. } | V2 { .. } | V3 { .. } => unreachable!(
                     "older transaction versions only exist in finalized blocks, because of the mandatory canopy checkpoint",
                 ),
+                #[cfg(feature = "tx-v6")]
+                _V6 => todo!("")
             };
 
             // add key `transaction.hash` and value `(height, tx_index)` to `tx_loc_by_hash`
@@ -1681,6 +1683,8 @@ impl UpdateWith<ContextuallyVerifiedBlock> for Chain {
                 V1 { .. } | V2 { .. } | V3 { .. } => unreachable!(
                     "older transaction versions only exist in finalized blocks, because of the mandatory canopy checkpoint",
                 ),
+                #[cfg(feature = "tx-v6")]
+                _V6 => todo!("")
             };
 
             // remove the utxos this produced

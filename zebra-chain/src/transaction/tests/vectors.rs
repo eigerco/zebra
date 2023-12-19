@@ -996,6 +996,26 @@ fn binding_signatures_for_network(network: Network) {
                         .expect("must pass verification");
                     }
                 }
+                #[cfg(feature = "tx-v6")]
+                Transaction::V6 {
+                    sapling_shielded_data,
+                    ..
+                } => {
+                    if let Some(sapling_shielded_data) = sapling_shielded_data {
+                        let shielded_sighash = tx.sighash(upgrade, HashType::ALL, &[], None);
+
+                        let bvk = redjubjub::VerificationKey::try_from(
+                            sapling_shielded_data.binding_verification_key(),
+                        )
+                        .expect("a valid redjubjub::VerificationKey");
+
+                        bvk.verify(
+                            shielded_sighash.as_ref(),
+                            &sapling_shielded_data.binding_sig,
+                        )
+                        .expect("must pass verification");
+                    }
+                }
             }
         }
     }

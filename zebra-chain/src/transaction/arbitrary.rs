@@ -926,6 +926,8 @@ pub fn transaction_to_fake_v5(
             orchard_shielded_data: None,
         },
         v5 @ V5 { .. } => v5.clone(),
+        #[cfg(feature = "tx-v6")]
+        V6 { .. } => todo!(),
     }
 }
 
