@@ -1521,6 +1521,16 @@ impl Transaction {
             .map(|shielded_data| &mut shielded_data.value_balance)
     }
 
+    /// Return the zsf deposit balance, the change in the transaction value
+    /// pool due to the zsf deposit.
+    #[cfg(feature = "tx-v6")]
+    pub fn zsf_deposit_balance(&self) -> ValueBalance<NegativeAllowed> {
+        match self {
+            Transaction::V6 { zsf_deposit, .. } => ValueBalance::from_zsf_amount(-*zsf_deposit),
+            _ => ValueBalance::zero(),
+        }
+    }
+
     /// Get the value balances for this transaction,
     /// using the transparent outputs spent in this transaction.
     ///
@@ -1533,6 +1543,7 @@ impl Transaction {
             + self.sprout_value_balance()?
             + self.sapling_value_balance()
             + self.orchard_value_balance()
+            + self.zsf_deposit_balance()
     }
 
     /// Get the value balances for this transaction.

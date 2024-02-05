@@ -29,7 +29,7 @@ proptest! {
         (network, block_height) in sapling_onwards_strategy(),
         block_time in datetime_full(),
         relative_source_fund_heights in vec(0.0..1.0, 1..=MAX_TRANSPARENT_INPUTS),
-        transaction_version in 4_u8..=5,
+        transaction_version in 4_u8..=6,
     ) {
         let _init_guard = zebra_test::init();
 
@@ -300,6 +300,8 @@ fn mock_transparent_transaction(
     // Create the mock transaction
     let expiry_height = block_height;
 
+    let zsf_deposit = Amount::zero();
+
     let transaction = match transaction_version {
         4 => Transaction::V4 {
             inputs,
@@ -317,6 +319,16 @@ fn mock_transparent_transaction(
             sapling_shielded_data: None,
             orchard_shielded_data: None,
             network_upgrade,
+        },
+        6 => Transaction::V6 {
+            inputs,
+            outputs,
+            lock_time,
+            expiry_height,
+            sapling_shielded_data: None,
+            orchard_shielded_data: None,
+            network_upgrade,
+            zsf_deposit,
         },
         invalid_version => unreachable!("invalid transaction version: {}", invalid_version),
     };

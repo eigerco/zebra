@@ -1521,7 +1521,7 @@ impl Chain {
                     "older transaction versions only exist in finalized blocks, because of the mandatory canopy checkpoint",
                 ),
                 #[cfg(feature = "tx-v6")]
-                _V6 => todo!("")
+                V6 => todo!("")
             };
 
             // add key `transaction.hash` and value `(height, tx_index)` to `tx_loc_by_hash`
@@ -1684,7 +1684,20 @@ impl UpdateWith<ContextuallyVerifiedBlock> for Chain {
                     "older transaction versions only exist in finalized blocks, because of the mandatory canopy checkpoint",
                 ),
                 #[cfg(feature = "tx-v6")]
-                _V6 => todo!("")
+                V6 {
+                    inputs,
+                    outputs,
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                    ..
+                } => (
+                    inputs,
+                    outputs,
+                    &None,
+                    &None,
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                ),
             };
 
             // remove the utxos this produced

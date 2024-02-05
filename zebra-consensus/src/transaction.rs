@@ -415,7 +415,17 @@ where
                     orchard_shielded_data,
                 )?,
                 #[cfg(feature = "tx-v6")]
-                Transaction::V6 { .. } => todo!()
+                Transaction::V6 {
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                     .. } => Self::verify_v6_transaction(
+                    &req,
+                    network,
+                    script_verifier,
+                    cached_ffi_transaction.clone(),
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                )?,
             };
 
             if let Some(unmined_tx) = req.mempool_transaction() {
@@ -722,27 +732,14 @@ where
 
         Self::verify_v5_transaction_network_upgrade(&transaction, upgrade)?;
 
-        let shielded_sighash = transaction.sighash(
-            upgrade,
-            HashType::ALL,
-            cached_ffi_transaction.all_previous_outputs(),
-            None,
-        );
-
-        Ok(Self::verify_transparent_inputs_and_outputs(
+        Self::verify_v5_and_v6_transaction(
+            cached_ffi_transaction,
             request,
             network,
             script_verifier,
-            cached_ffi_transaction,
-        )?
-        .and(Self::verify_sapling_shielded_data(
             sapling_shielded_data,
-            &shielded_sighash,
-        )?)
-        .and(Self::verify_orchard_shielded_data(
             orchard_shielded_data,
-            &shielded_sighash,
-        )?))
+        )
     }
 
     /// Verifies if a V5 `transaction` is supported by `network_upgrade`.
@@ -773,6 +770,99 @@ where
             | NetworkUpgrade::Blossom
             | NetworkUpgrade::Heartwood
             | NetworkUpgrade::Canopy => Err(TransactionError::UnsupportedByNetworkUpgrade(
+                transaction.version(),
+                network_upgrade,
+            )),
+        }
+    }
+
+    /// Verify a V6 transaction.
+    fn verify_v6_transaction(
+        request: &Request,
+        network: Network,
+        script_verifier: script::Verifier,
+        cached_ffi_transaction: Arc<CachedFfiTransaction>,
+        sapling_shielded_data: &Option<sapling::ShieldedData<sapling::SharedAnchor>>,
+        orchard_shielded_data: &Option<orchard::ShieldedData>,
+    ) -> Result<AsyncChecks, TransactionError> {
+        let transaction = request.transaction();
+        let upgrade = request.upgrade(network);
+
+        Self::verify_v6_transaction_network_upgrade(&transaction, upgrade)?;
+
+        Self::verify_v5_and_v6_transaction(
+            cached_ffi_transaction,
+            request,
+            network,
+            script_verifier,
+            sapling_shielded_data,
+            orchard_shielded_data,
+        )
+    }
+
+    fn verify_v5_and_v6_transaction(
+        cached_ffi_transaction: Arc<CachedFfiTransaction>,
+        request: &Request,
+        network: Network,
+        script_verifier: script::Verifier,
+        sapling_shielded_data: &Option<sapling::ShieldedData<sapling::SharedAnchor>>,
+        orchard_shielded_data: &Option<orchard::ShieldedData>,
+    ) -> Result<AsyncChecks, TransactionError> {
+        let transaction = request.transaction();
+        let upgrade = request.upgrade(network);
+
+        let shielded_sighash = transaction.sighash(
+            upgrade,
+            HashType::ALL,
+            cached_ffi_transaction.all_previous_outputs(),
+            None,
+        );
+
+        Ok(Self::verify_transparent_inputs_and_outputs(
+            request,
+            network,
+            script_verifier,
+            cached_ffi_transaction,
+        )?
+        .and(Self::verify_sapling_shielded_data(
+            sapling_shielded_data,
+            &shielded_sighash,
+        )?)
+        .and(Self::verify_orchard_shielded_data(
+            orchard_shielded_data,
+            &shielded_sighash,
+        )?))
+    }
+
+    /// Verifies if a V6 `transaction` is supported by `network_upgrade`.
+    fn verify_v6_transaction_network_upgrade(
+        transaction: &Transaction,
+        network_upgrade: NetworkUpgrade,
+    ) -> Result<(), TransactionError> {
+        match network_upgrade {
+            // Supports V6 transactions
+            //
+            // # Consensus
+            //
+            // > [NU6 onward] The transaction version number MUST be 4 or 5.
+            // > If the transaction version number is 4 then the version group ID MUST be 0x892F2085.
+            // > If the transaction version number is 5 then the version group ID MUST be 0x26A7270A.
+            //
+            // https://zips.z.cash/protocol/protocol.pdf#txnconsensus
+            //
+            // Note: Here we verify the transaction version number of the above rule, the group
+            // id is checked in zebra-chain crate, in the transaction serialize.
+            NetworkUpgrade::Nu6 => Ok(()),
+
+            // Does not support V5 transactions
+            NetworkUpgrade::Genesis
+            | NetworkUpgrade::BeforeOverwinter
+            | NetworkUpgrade::Overwinter
+            | NetworkUpgrade::Sapling
+            | NetworkUpgrade::Blossom
+            | NetworkUpgrade::Heartwood
+            | NetworkUpgrade::Canopy
+            | NetworkUpgrade::Nu5 => Err(TransactionError::UnsupportedByNetworkUpgrade(
                 transaction.version(),
                 network_upgrade,
             )),

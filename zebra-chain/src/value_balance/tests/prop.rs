@@ -16,15 +16,17 @@ proptest! {
         let sprout = value_balance1.sprout + value_balance2.sprout;
         let sapling = value_balance1.sapling + value_balance2.sapling;
         let orchard = value_balance1.orchard + value_balance2.orchard;
+        let zsf = value_balance1.zsf + value_balance2.zsf;
 
-        match (transparent, sprout, sapling, orchard) {
-            (Ok(transparent), Ok(sprout), Ok(sapling), Ok(orchard)) => prop_assert_eq!(
+        match (transparent, sprout, sapling, orchard, zsf) {
+            (Ok(transparent), Ok(sprout), Ok(sapling), Ok(orchard), Ok(zsf)) => prop_assert_eq!(
                 value_balance1 + value_balance2,
                 Ok(ValueBalance {
                     transparent,
                     sprout,
                     sapling,
                     orchard,
+                    zsf
                 })
             ),
             _ => prop_assert!(
@@ -33,7 +35,8 @@ proptest! {
                     Err(ValueBalanceError::Transparent(_)
                         | ValueBalanceError::Sprout(_)
                         | ValueBalanceError::Sapling(_)
-                        | ValueBalanceError::Orchard(_))
+                        | ValueBalanceError::Orchard(_)
+                        | ValueBalanceError::Zsf(_))
                 )
             ),
         }
@@ -49,15 +52,17 @@ proptest! {
         let sprout = value_balance1.sprout - value_balance2.sprout;
         let sapling = value_balance1.sapling - value_balance2.sapling;
         let orchard = value_balance1.orchard - value_balance2.orchard;
+        let zsf = value_balance1.zsf - value_balance2.zsf;
 
-        match (transparent, sprout, sapling, orchard) {
-            (Ok(transparent), Ok(sprout), Ok(sapling), Ok(orchard)) => prop_assert_eq!(
+        match (transparent, sprout, sapling, orchard, zsf) {
+            (Ok(transparent), Ok(sprout), Ok(sapling), Ok(orchard), Ok(zsf)) => prop_assert_eq!(
                 value_balance1 - value_balance2,
                 Ok(ValueBalance {
                     transparent,
                     sprout,
                     sapling,
                     orchard,
+                    zsf
                 })
             ),
             _ => prop_assert!(
@@ -66,7 +71,8 @@ proptest! {
                     Err(ValueBalanceError::Transparent(_)
                         | ValueBalanceError::Sprout(_)
                         | ValueBalanceError::Sapling(_)
-                        | ValueBalanceError::Orchard(_))
+                        | ValueBalanceError::Orchard(_)
+                        | ValueBalanceError::Zsf(_))
                 )
             ),
         }
@@ -85,23 +91,26 @@ proptest! {
         let sprout = value_balance1.sprout + value_balance2.sprout;
         let sapling = value_balance1.sapling + value_balance2.sapling;
         let orchard = value_balance1.orchard + value_balance2.orchard;
+        let zsf = value_balance1.zsf + value_balance2.zsf;
 
-        match (transparent, sprout, sapling, orchard) {
-            (Ok(transparent), Ok(sprout), Ok(sapling), Ok(orchard)) => prop_assert_eq!(
+        match (transparent, sprout, sapling, orchard, zsf) {
+            (Ok(transparent), Ok(sprout), Ok(sapling), Ok(orchard), Ok(zsf)) => prop_assert_eq!(
                 collection.iter().sum::<Result<ValueBalance<NegativeAllowed>, ValueBalanceError>>(),
                 Ok(ValueBalance {
                     transparent,
                     sprout,
                     sapling,
                     orchard,
+                    zsf
                 })
             ),
             _ => prop_assert!(matches!(collection.iter().sum(),
                                        Err(ValueBalanceError::Transparent(_)
                                            | ValueBalanceError::Sprout(_)
                                            | ValueBalanceError::Sapling(_)
-                                           | ValueBalanceError::Orchard(_))
-            ))
+                                           | ValueBalanceError::Orchard(_)
+                                           | ValueBalanceError::Zsf(_)))),
+
         }
     }
 
@@ -116,7 +125,7 @@ proptest! {
     }
 
     #[test]
-    fn value_balance_deserialization(bytes in any::<[u8; 32]>()) {
+    fn value_balance_deserialization(bytes in any::<[u8; 40]>()) {
         let _init_guard = zebra_test::init();
 
         if let Ok(deserialized) = ValueBalance::<NonNegative>::from_bytes(bytes) {
