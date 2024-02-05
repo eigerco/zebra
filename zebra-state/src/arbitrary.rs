@@ -146,6 +146,7 @@ impl ContextuallyVerifiedBlock {
             height,
             new_outputs,
             transaction_hashes,
+            zsf_balance,
         } = block.into();
 
         Self {
@@ -159,6 +160,7 @@ impl ContextuallyVerifiedBlock {
             spent_outputs: new_outputs,
             transaction_hashes,
             chain_value_pool_change: fake_chain_value_pool_change,
+            zsf_balance,
         }
     }
 

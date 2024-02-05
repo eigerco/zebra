@@ -786,7 +786,7 @@ impl Arbitrary for Transaction {
             NetworkUpgrade::Blossom | NetworkUpgrade::Heartwood | NetworkUpgrade::Canopy => {
                 Self::v4_strategy(ledger_state)
             }
-            NetworkUpgrade::Nu5 => prop_oneof![
+            NetworkUpgrade::Nu5 | NetworkUpgrade::Nu6 => prop_oneof![
                 Self::v4_strategy(ledger_state),
                 Self::v5_strategy(ledger_state)
             ]
@@ -926,6 +926,8 @@ pub fn transaction_to_fake_v5(
             orchard_shielded_data: None,
         },
         v5 @ V5 { .. } => v5.clone(),
+        #[cfg(feature = "tx-v6")]
+        V6 { .. } => todo!(),
     }
 }
 

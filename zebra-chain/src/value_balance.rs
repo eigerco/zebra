@@ -26,6 +26,7 @@ pub struct ValueBalance<C> {
     sprout: Amount<C>,
     sapling: Amount<C>,
     orchard: Amount<C>,
+    zsf: Amount<C>,
 }
 
 impl<C> ValueBalance<C>
@@ -60,6 +61,14 @@ where
     pub fn from_orchard_amount(orchard_amount: Amount<C>) -> Self {
         ValueBalance {
             orchard: orchard_amount,
+            ..ValueBalance::zero()
+        }
+    }
+
+    /// Creates a [`ValueBalance`] from the given zsf amount.
+    pub fn from_zsf_amount(zsf_amount: Amount<C>) -> Self {
+        ValueBalance {
+            zsf: zsf_amount,
             ..ValueBalance::zero()
         }
     }
@@ -123,7 +132,20 @@ where
             sprout: zero,
             sapling: zero,
             orchard: zero,
+            zsf: Amount::zero(),
         }
+    }
+
+    /// Get the ZSF amount from the [`ValueBalance`].
+    pub fn zsf_amount(&self) -> Amount<C> {
+        self.zsf
+    }
+
+    /// Insert a ZSF value balance into a given [`ValueBalance`]
+    /// leaving the other values untouched.
+    pub fn set_zsf_value_balance(&mut self, zsf_value_balance: ValueBalance<C>) -> &Self {
+        self.zsf = zsf_value_balance.zsf;
+        self
     }
 
     /// Convert this value balance to a different ValueBalance type,
@@ -137,6 +159,7 @@ where
             sprout: self.sprout.constrain().map_err(Sprout)?,
             sapling: self.sapling.constrain().map_err(Sapling)?,
             orchard: self.orchard.constrain().map_err(Orchard)?,
+            zsf: self.zsf.constrain().map_err(Zsf)?,
         })
     }
 }
@@ -160,7 +183,8 @@ impl ValueBalance<NegativeAllowed> {
         // https://zebra.zfnd.org/dev/rfcs/0012-value-pools.html#definitions
         //
         // This will error if the remaining value in the transaction value pool is negative.
-        (self.transparent + self.sprout + self.sapling + self.orchard)?.constrain::<NonNegative>()
+        (self.transparent + self.sprout + self.sapling + self.orchard + self.zsf)?
+            .constrain::<NonNegative>()
     }
 }
 
@@ -322,22 +346,29 @@ impl ValueBalance<NonNegative> {
             ValueBalance::from_sapling_amount(Amount::try_from(MAX_MONEY / 2).unwrap());
         let fake_orchard_value_balance =
             ValueBalance::from_orchard_amount(Amount::try_from(MAX_MONEY / 2).unwrap());
+        let fake_zsf_value_balance =
+            ValueBalance::from_zsf_amount(Amount::try_from(MAX_MONEY / 2).unwrap());
 
         fake_value_pool.set_transparent_value_balance(fake_transparent_value_balance);
         fake_value_pool.set_sprout_value_balance(fake_sprout_value_balance);
         fake_value_pool.set_sapling_value_balance(fake_sapling_value_balance);
         fake_value_pool.set_orchard_value_balance(fake_orchard_value_balance);
+        fake_value_pool.set_zsf_value_balance(fake_zsf_value_balance);
 
         fake_value_pool
     }
 
     /// To byte array
-    pub fn to_bytes(self) -> [u8; 32] {
+    pub fn to_bytes(self) -> [u8; 40] {
         let transparent = self.transparent.to_bytes();
         let sprout = self.sprout.to_bytes();
         let sapling = self.sapling.to_bytes();
         let orchard = self.orchard.to_bytes();
-        match [transparent, sprout, sapling, orchard].concat().try_into() {
+        let zsf = self.zsf.to_bytes();
+        match [transparent, sprout, sapling, orchard, zsf]
+            .concat()
+            .try_into()
+        {
             Ok(bytes) => bytes,
             _ => unreachable!(
                 "Four [u8; 8] should always concat with no error into a single [u8; 32]"
@@ -345,34 +376,36 @@ impl ValueBalance<NonNegative> {
         }
     }
 
-    /// From byte array
+    /// From a 32-byte array before the ZSF activation
     #[allow(clippy::unwrap_in_result)]
-    pub fn from_bytes(bytes: [u8; 32]) -> Result<ValueBalance<NonNegative>, ValueBalanceError> {
+    pub fn from_bytes_before_zsf(
+        bytes: [u8; 32],
+    ) -> Result<ValueBalance<NonNegative>, ValueBalanceError> {
         let transparent = Amount::from_bytes(
             bytes[0..8]
                 .try_into()
-                .expect("Extracting the first quarter of a [u8; 32] should always succeed"),
+                .expect("Extracting the first 8 bytes of a [u8; 32] should always succeed"),
         )
         .map_err(Transparent)?;
 
         let sprout = Amount::from_bytes(
             bytes[8..16]
                 .try_into()
-                .expect("Extracting the second quarter of a [u8; 32] should always succeed"),
+                .expect("Extracting the second 8 bytes of a [u8; 32] should always succeed"),
         )
         .map_err(Sprout)?;
 
         let sapling = Amount::from_bytes(
             bytes[16..24]
                 .try_into()
-                .expect("Extracting the third quarter of a [u8; 32] should always succeed"),
+                .expect("Extracting the third 8 bytes of a [u8; 32] should always succeed"),
         )
         .map_err(Sapling)?;
 
         let orchard = Amount::from_bytes(
             bytes[24..32]
                 .try_into()
-                .expect("Extracting the last quarter of a [u8; 32] should always succeed"),
+                .expect("Extracting the fourth 8 bytes of a [u8; 32] should always succeed"),
         )
         .map_err(Orchard)?;
 
@@ -381,6 +414,29 @@ impl ValueBalance<NonNegative> {
             sprout,
             sapling,
             orchard,
+            zsf: Amount::zero(),
+        })
+    }
+
+    /// From byte array
+    #[allow(clippy::unwrap_in_result)]
+    pub fn from_bytes(bytes: [u8; 40]) -> Result<ValueBalance<NonNegative>, ValueBalanceError> {
+        let value_balance_without_zsf = ValueBalance::from_bytes_before_zsf(
+            bytes[0..32]
+                .try_into()
+                .expect("Extracting the first 32 bytes of a [u8; 40] should always succeed"),
+        )?;
+
+        let zsf = Amount::from_bytes(
+            bytes[32..40]
+                .try_into()
+                .expect("Extracting the last 8 bytes of a [u8; 40] should always succeed"),
+        )
+        .map_err(Zsf)?;
+
+        Ok(ValueBalance {
+            zsf,
+            ..value_balance_without_zsf
         })
     }
 }
@@ -399,6 +455,9 @@ pub enum ValueBalanceError {
 
     /// orchard amount error {0}
     Orchard(amount::Error),
+
+    /// zsf balance amount error {0}
+    Zsf(amount::Error),
 }
 
 impl<C> std::ops::Add for ValueBalance<C>
@@ -412,6 +471,7 @@ where
             sprout: (self.sprout + rhs.sprout).map_err(Sprout)?,
             sapling: (self.sapling + rhs.sapling).map_err(Sapling)?,
             orchard: (self.orchard + rhs.orchard).map_err(Orchard)?,
+            zsf: (self.zsf + rhs.zsf).map_err(Zsf)?,
         })
     }
 }
@@ -460,6 +520,7 @@ where
             sprout: (self.sprout - rhs.sprout).map_err(Sprout)?,
             sapling: (self.sapling - rhs.sapling).map_err(Sapling)?,
             orchard: (self.orchard - rhs.orchard).map_err(Orchard)?,
+            zsf: (self.zsf - rhs.zsf).map_err(Zsf)?,
         })
     }
 }
@@ -528,6 +589,7 @@ where
             sprout: self.sprout.neg(),
             sapling: self.sapling.neg(),
             orchard: self.orchard.neg(),
+            zsf: self.zsf.neg(),
         }
     }
 }

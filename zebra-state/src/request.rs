@@ -7,7 +7,7 @@ use std::{
 };
 
 use zebra_chain::{
-    amount::NegativeAllowed,
+    amount::{Amount, NegativeAllowed, NonNegative},
     block::{self, Block},
     history_tree::HistoryTree,
     orchard,
@@ -161,6 +161,8 @@ pub struct SemanticallyVerifiedBlock {
     /// A precomputed list of the hashes of the transactions in this block,
     /// in the same order as `block.transactions`.
     pub transaction_hashes: Arc<[transaction::Hash]>,
+    /// Zcash Sustainability Fund balance for this block.
+    pub zsf_balance: Amount<NonNegative>,
 }
 
 /// A block ready to be committed directly to the finalized state with
@@ -221,6 +223,9 @@ pub struct ContextuallyVerifiedBlock {
 
     /// The sum of the chain value pool changes of all transactions in this block.
     pub(crate) chain_value_pool_change: ValueBalance<NegativeAllowed>,
+
+    /// Zcash Sustainability Fund balance for this block.
+    pub(crate) zsf_balance: Amount<NonNegative>,
 }
 
 /// Wraps note commitment trees and the history tree together.
@@ -289,6 +294,8 @@ pub struct FinalizedBlock {
     pub(super) transaction_hashes: Arc<[transaction::Hash]>,
     /// The tresstate associated with the block.
     pub(super) treestate: Treestate,
+    /// Zcash Sustainability Fund balance for this block.
+    pub(super) zsf_balance: Amount<NonNegative>,
 }
 
 impl FinalizedBlock {
@@ -314,6 +321,7 @@ impl FinalizedBlock {
             new_outputs: block.new_outputs,
             transaction_hashes: block.transaction_hashes,
             treestate,
+            zsf_balance: block.zsf_balance,
         }
     }
 }
@@ -386,6 +394,7 @@ impl ContextuallyVerifiedBlock {
             height,
             new_outputs,
             transaction_hashes,
+            zsf_balance,
         } = semantically_verified;
 
         // This is redundant for the non-finalized state,
@@ -403,6 +412,7 @@ impl ContextuallyVerifiedBlock {
             transaction_hashes,
             chain_value_pool_change: block
                 .chain_value_pool_change(&utxos_from_ordered_utxos(spent_outputs))?,
+            zsf_balance,
         })
     }
 }
