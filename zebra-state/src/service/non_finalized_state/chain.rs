@@ -1525,7 +1525,20 @@ impl Chain {
                     "older transaction versions only exist in finalized blocks, because of the mandatory canopy checkpoint",
                 ),
                 #[cfg(feature = "zsf")]
-                ZFuture => todo!("")
+                ZFuture {
+                    inputs,
+                    outputs,
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                    ..
+                } => (
+                    inputs,
+                    outputs,
+                    &None,
+                    &None,
+                    sapling_shielded_data,
+                    orchard_shielded_data,
+                )
             };
 
             // add key `transaction.hash` and value `(height, tx_index)` to `tx_loc_by_hash`

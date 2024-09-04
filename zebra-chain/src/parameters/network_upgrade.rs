@@ -110,8 +110,6 @@ pub(super) const MAINNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] 
     (block::Height(1_687_104), Nu5),
     // TODO: Update NU6 activation height once it's been specified.
     (block::Height(2_820_000), Nu6),
-    #[cfg(feature = "zsf")]
-    (block::Height(3_000_000), ZFuture),
 ];
 
 /// Fake mainnet network upgrade activation heights, used in tests.
@@ -151,8 +149,6 @@ pub(super) const TESTNET_ACTIVATION_HEIGHTS: &[(block::Height, NetworkUpgrade)] 
     (block::Height(1_842_420), Nu5),
     // TODO: Update NU6 activation height once it's been specified.
     (block::Height(2_900_000), Nu6),
-    #[cfg(feature = "zsf")]
-    (block::Height(3_000_000), ZFuture),
 ];
 
 /// Fake testnet network upgrade activation heights, used in tests.
