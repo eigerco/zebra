@@ -313,8 +313,7 @@ impl TryFrom<ReadResponse> for Response {
 
             ReadResponse::ValidBestChainTipNullifiersAndAnchors => Ok(Response::ValidBestChainTipNullifiersAndAnchors),
 
-            ReadResponse::TipPoolValues { .. }
-            | ReadResponse::TransactionIdsForBlock(_)
+            ReadResponse::TransactionIdsForBlock(_)
             | ReadResponse::SaplingTree(_)
             | ReadResponse::OrchardTree(_)
             | ReadResponse::SaplingSubtrees(_)
@@ -326,6 +325,9 @@ impl TryFrom<ReadResponse> for Response {
             }
 
             ReadResponse::ValuePools(value_pools) => Ok(Response::ValuePools(value_pools)),
+
+            #[cfg(feature = "zsf")]
+            ReadResponse::TipPoolValues { tip_height, tip_hash, value_balance } => Ok(Response::TipPoolValues { tip_height, tip_hash, value_balance }),
 
             #[cfg(feature = "getblocktemplate-rpcs")]
             ReadResponse::ValidBlockProposal => Ok(Response::ValidBlockProposal),
