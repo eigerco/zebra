@@ -55,6 +55,7 @@ impl<'a> TxIdBuilder<'a> {
         Ok(Hash(*alt_tx.txid().as_ref()))
     }
 
+    #[cfg(feature = "zsf")]
     /// Compute the Transaction ID for a ZFuture transaction in the given network upgrade.
     fn txid_zfuture(self) -> Result<Hash, io::Error> {
         // The v5 txid (from ZIP-244) is computed using librustzcash. Convert the zebra
