@@ -986,8 +986,10 @@ impl ZcashDeserialize for Transaction {
             (ZFUTURE_TX_VERSION, true) => {
                 // Denoted as `nVersionGroupId` in the spec.
                 let id = limited_reader.read_u32::<LittleEndian>()?;
-                if id != ZFUTURE_VERSION_GROUP_ID {
-                    return Err(SerializationError::Parse("expected TX_V6_VERSION_GROUP_ID"));
+                if id != TX_ZFUTURE_VERSION_GROUP_ID {
+                    return Err(SerializationError::Parse(
+                        "expected TX_ZFUTURE_VERSION_GROUP_ID",
+                    ));
                 }
                 // Denoted as `nConsensusBranchId` in the spec.
                 // Convert it to a NetworkUpgrade
