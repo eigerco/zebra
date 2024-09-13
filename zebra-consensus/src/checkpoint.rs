@@ -28,7 +28,7 @@ use tower::{Service, ServiceExt};
 use tracing::instrument;
 
 use zebra_chain::{
-    amount,
+    amount::{self, Amount, NonNegative},
     block::{self, Block},
     parameters::{subsidy::FundingStreamReceiver, Network, GENESIS_PREVIOUS_BLOCK_HASH},
     work::equihash,
@@ -37,6 +37,7 @@ use zebra_state::{self as zs, CheckpointVerifiedBlock};
 
 use crate::{
     block::{subsidy::general::block_subsidy_pre_zsf, VerifyBlockError},
+    block_subsidy,
     checkpoint::types::{
         Progress::{self, *},
         TargetHeight::{self, *},
@@ -588,6 +589,7 @@ where
     fn check_block(
         &self,
         block: Arc<Block>,
+        zsf_balance: Amount<NonNegative>,
     ) -> Result<CheckpointVerifiedBlock, VerifyCheckpointError> {
         let hash = block.hash();
         let height = block
@@ -614,7 +616,7 @@ where
             funding_stream_values(
                 height,
                 &self.network,
-                block_subsidy_pre_zsf(height, &self.network)?,
+                block_subsidy(height, &self.network, zsf_balance)?,
             )?
             .remove(&FundingStreamReceiver::Deferred)
         } else {
@@ -644,12 +646,16 @@ where
     /// If the block does not pass basic validity checks,
     /// returns an error immediately.
     #[allow(clippy::unwrap_in_result)]
-    fn queue_block(&mut self, block: Arc<Block>) -> Result<RequestBlock, VerifyCheckpointError> {
+    fn queue_block(
+        &mut self,
+        block: Arc<Block>,
+        zsf_balance: Amount<NonNegative>,
+    ) -> Result<RequestBlock, VerifyCheckpointError> {
         // Set up a oneshot channel to send results
         let (tx, rx) = oneshot::channel();
 
         // Check that the height and Merkle roots are valid.
-        let block = self.check_block(block)?;
+        let block = self.check_block(block, zsf_balance)?;
         let height = block.height;
         let hash = block.hash;
 
@@ -1008,6 +1014,8 @@ pub enum VerifyCheckpointError {
     },
     #[error("zebra is shutting down")]
     ShuttingDown,
+    #[error("failed to get the zsf balance")]
+    ZsfBalanceError,
 }
 
 impl From<VerifyBlockError> for VerifyCheckpointError {
@@ -1072,11 +1080,6 @@ where
             return async { Err(VerifyCheckpointError::Finished) }.boxed();
         }
 
-        let req_block = match self.queue_block(block) {
-            Ok(req_block) => req_block,
-            Err(e) => return async { Err(e) }.boxed(),
-        };
-
         self.process_checkpoint_range();
 
         metrics::gauge!("checkpoint.queued_slots").set(self.queued.len() as f64);
@@ -1107,6 +1110,24 @@ where
         // Instead, we reset the verifier to the successfully committed state tip.
         let state_service = self.state_service.clone();
         let commit_checkpoint_verified = tokio::spawn(async move {
+            let zsf_balance = match state_service
+                .ready()
+                .await
+                .map_err(|source| VerifyCheckpointError::ZsfBalanceError)?
+                .call(zs::Request::TipPoolValues)
+                .await
+                .map_err(|source| VerifyCheckpointError::ZsfBalanceError)?
+            {
+                zs::Response::TipPoolValues {
+                    tip_hash: _,
+                    tip_height: _,
+                    value_balance,
+                } => value_balance.zsf_balance(),
+                _ => unreachable!("wrong response to Request::KnownBlock"),
+            };
+
+            let req_block = self.queue_block(block, zsf_balance)?;
+
             let hash = req_block
                 .rx
                 .await
